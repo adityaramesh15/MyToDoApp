@@ -6,11 +6,28 @@ from tab import Tab
 import os
 import json
 
+
 app = Flask(__name__)
 
-basedir = os.path.abspath(os.path.dirname(__file__))
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(basedir, "todos.db")
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+sql_user_name = os.environ.get("AZURE_SQL_USER");
+sql_password = os.environ.get("AZURE_SQL_PASSWORD");
+server= os.environ.get("AZURE_SQL_SERVER");
+azure_sql_port = os.environ.get("AZURE_SQL_PORT");
+database = os.environ.get("DATABASE_NAME")
+
+connection_string = f"postgresql+psycopg2://{sql_user_name}:{sql_password}@{server}:{azure_sql_port}/{database}"
+
+# Use local database if Azure SQL server is not configured
+if not server:
+    print('PostgreSQL not configured, Using local SQLLite database')
+    basedir = os.path.abspath(os.path.dirname(__file__))   # Get the directory of the this file
+    print('Base directory:', basedir)
+    todo_file = os.path.join(basedir, 'todo_list.txt')     # Create the path to the to-do list file using the directory
+    app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///' + os.path.join(basedir, 'todos.db')
+else:
+    print('Using PostgreSQL database')
+    app.config["SQLALCHEMY_DATABASE_URI"] = connection_string
+
 
 db.init_app(app)
 with app.app_context():
