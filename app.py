@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, g
 from database import db, Todo
 from recommendation_engine import RecommendationEngine
+from tab import Tab
 import os
 import json
 
@@ -19,8 +20,8 @@ def load_data_to_g():
     todos = Todo.query.all()
     g.todos = todos
     g.todo = None
-
-
+    g.TabEnum = Tab
+    g.selectedTab = Tab.NONE
 
 @app.route("/")
 def index():
@@ -47,6 +48,7 @@ def remove_todo(id):
 async def recommend(id, refresh = False):
     recommendation_engine = RecommendationEngine()
     g.todo = db.session.query(Todo).filter_by(id = id).first()
+    g.selectedTab = Tab.RECOMMENDATIONS
 
     if g.todo and not refresh:
         try:
@@ -75,6 +77,59 @@ async def recommend(id, refresh = False):
 
 
     return render_template("index.html")
+
+
+@app.route("/details/<int:id>", methods = ["GET"])
+def details(id):
+    g.selectedTab = Tab.DETAILS
+    g.todos = Todo.query.all()
+    g.todo = Todo.query.filter_by(id=id).first()
+
+    return render_template("index.html")
+
+@app.route('/edit/<int:id>', methods=['GET'])
+def edit(id):
+    g.selectedTab = Tab.EDIT
+    g.todos = Todo.query.all()
+    g.todo = Todo.query.filter_by(id=id).first()
+
+    return render_template('index.html')
+
+@app.route('/update/<int:id>', methods=['POST'])
+def update_todo(id):
+    g.selectedTab = Tab.DETAILS
+
+    if request.form.get('cancel') != None:
+        return redirect(url_for('index'))
+    
+    name = request.form['name']
+    due_date = request.form.get('duedate')
+    notes=request.form.get('notes')
+    priority=request.form.get('priority')
+    completed=request.form.get('completed')
+
+    todo = db.session.query(Todo).filter_by(id=id).first()
+    if todo != None:
+        todo.name = name
+
+        if due_date != "None":
+            todo.due_date = due_date
+
+        if notes != None:
+            todo.notes = notes
+
+        if priority != None:
+            todo.priority = int(priority) 
+
+        if completed == None:
+            todo.completed = False
+        elif completed == "on":
+            todo.completed = True
+
+    db.session.add(todo)
+    db.session.commit()
+
+    return redirect(url_for("index"))
 
 
 
