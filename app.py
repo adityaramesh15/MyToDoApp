@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, g
 from database import db, Todo
 from recommendation_engine import RecommendationEngine
+from context_processors import inject_current_date
 from tab import Tab
 import os
 import json
@@ -14,6 +15,10 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db.init_app(app)
 with app.app_context():
     db.create_all()
+
+@app.context_processor
+def inject_common_variables():
+    return inject_current_date()
 
 @app.before_request
 def load_data_to_g():
@@ -131,6 +136,18 @@ def update_todo(id):
 
     return redirect(url_for("index"))
 
+@app.route('/completed/<int:id>/<complete>', methods=['GET'])
+def completed(id, complete):
+    g.selectedTab = Tab.NONE
+    g.todo = Todo.query.filter_by(id=id).first()
+    if (g.todo != None and complete == "true"):
+        g.todo.completed = True
+    elif (g.todo != None and complete == "false"):
+        g.todo.completed = False
+
+    db.session.add(g.todo)
+    db.session.commit()
+    return redirect(url_for('index'))  
 
 
 if __name__ == "__main__":

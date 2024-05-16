@@ -12,8 +12,6 @@ class RecommendationEngine:
     def __init__(self):
         config = dotenv_values(".env")
 
-        #uses the USE_AZURE_OPENAI variable from the .env file to determine which AI service to use
-        #False means use OpenAI, True means use Azure OpenAI
         selectedService = Service.AzureOpenAI if config.get("USE_AZURE_OPENAI") == "True" else Service.OpenAI
 
         if selectedService == Service.AzureOpenAI:
